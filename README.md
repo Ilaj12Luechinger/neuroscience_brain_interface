@@ -25,7 +25,8 @@ How to detect immersion:
 | Beta    | Increased   |
 | Theta  | Increased   |
 
-
+## Fourier Transformation
+the Fourier transform (FT) is an integral transform that takes a function as input, and outputs another function that describes the extent to which various frequencies are present in the original function.
 
 
 ## Sources
