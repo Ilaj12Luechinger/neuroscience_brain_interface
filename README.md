@@ -28,7 +28,14 @@ How to detect immersion:
 ## Fourier Transformation
 the Fourier transform (FT) is an integral transform that takes a function as input, and outputs another function that describes the extent to which various frequencies are present in the original function.
 
+## Hanning Window
+Fourier Transformation assumes that the finite segment repeats periodically, but in reality it does not. At the start of the segment, the slope is most often not the same as at the start. Applying a window, e.g. Hanning Window, makes the amplitude at the edges 0 and therefore reduces the slope mismatch.
+Example of one episode without Hanning Window:
+![alt text](image-1.png)
+and now with Hanning Window:
+![alt text](image-2.png)
 
 ## Sources
 - https://ieeexplore.ieee.org/abstract/document/8981453
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC6479797/#:~:text=Relative%20to%20rest%2C%20Alpha%20waves,decrease%20during%20immersion%20was%20larger.
+- https://www.robots.ox.ac.uk/~sjrob/Teaching/SP/l7.pdf
