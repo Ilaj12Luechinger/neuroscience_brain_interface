@@ -29,10 +29,16 @@ How to detect immersion:
 the Fourier transform (FT) is an integral transform that takes a function as input, and outputs another function that describes the extent to which various frequencies are present in the original function.
 
 ## Hanning Window
-Fourier Transformation assumes that the finite segment repeats periodically, but in reality it does not. At the start of the segment, the slope is most often not the same as at the start. Applying a window, e.g. Hanning Window, makes the amplitude at the edges 0 and therefore reduces the slope mismatch.
+The Fourier Transform of a finite-length signal implicitly assumes that the observed segment repeats periodically in time. In practice, however, most real-world signals are not periodic within the chosen observation window. As a result, when the segment is artificially repeated, discontinuities often occur at the boundaries. In particular, the value and slope at the end of the segment typically do not match those at the beginning.
+
+These discontinuities introduce spectral leakage, spreading energy across multiple frequency components in the frequency domain.
+
+Applying a window function—such as the Hanning (Hann) window—reduces this effect. The window tapers the signal smoothly toward zero at the edges, minimizing abrupt changes between repeated segments. By reducing boundary discontinuities (including slope mismatches), windowing decreases spectral leakage and produces a more accurate representation of the signal’s frequency content.
+
 Example of one episode without Hanning Window:
 ![alt text](image-1.png)
-and now with Hanning Window:
+
+and now with Hanning Window applied:
 ![alt text](image-2.png)
 
 ## Sources
