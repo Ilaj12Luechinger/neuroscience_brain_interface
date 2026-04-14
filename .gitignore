@@ -2,3 +2,5 @@
 BCI/
 .gitignore/
 .BCI/
+.venv/
+data/
