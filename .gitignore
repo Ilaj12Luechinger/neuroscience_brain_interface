@@ -1,1 +1,6 @@
 .neuroscience/
+BCI/
+.gitignore/
+.BCI/
+.venv/
+data/
