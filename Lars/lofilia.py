@@ -21,6 +21,7 @@ import subprocess
 import threading
 import socket
 import time
+import atexit
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 OVERLAY_WIDTH   = 480
@@ -98,6 +99,16 @@ def load_gif(path, size):
         frames.append(ImageTk.PhotoImage(blank))
     return frames
 
+def get_vlc_path():
+    """Dynamically resolve VLC path to support 32/64-bit and custom installs."""
+    paths = [
+        r"C:\Program Files\VideoLAN\VLC\vlc.exe",
+        r"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
 
 class LofiliApp:
     def __init__(self, root: tk.Tk):
@@ -147,8 +158,15 @@ class LofiliApp:
         self._music_volume    = 80    # 0-200 (VLC scale) — lofi stream
         self._tts_volume      = 100   # 0-200 (VLC scale) — TTS voice
 
+        # Ensure background VLC processes are killed on exit or crash
+        atexit.register(self._cleanup)
+
         self._poll()
         self._animate()
+
+    def _cleanup(self):
+        """Emergency cleanup to prevent zombie VLC processes."""
+        self._stop_music()
 
     # ── Drag ───────────────────────────────────────────────────────────────────
     def _drag_start(self, e):
@@ -359,8 +377,14 @@ class LofiliApp:
                     print(f"Could not get stream URL. yt-dlp stderr: {result.stderr[:300]}")
                     self._music_on = False
                     return
+                
                 # Play with VLC headless + RC interface for pause/resume control
-                vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
+                vlc_path = get_vlc_path()
+                if not vlc_path:
+                    print("Error: VLC path not found. Please install VLC.")
+                    self._music_on = False
+                    return
+
                 self._music_proc = subprocess.Popen(
                     [vlc_path, "--intf", "rc",
                      f"--rc-host=localhost:{self._vlc_rc_port}",
@@ -371,6 +395,14 @@ class LofiliApp:
                 )
                 self._music_paused = False
                 print(f"Music playing via VLC (RC port {self._vlc_rc_port})")
+
+                # VLC 3.x ignores initial volume flag, set it explicitly via RC after bootup
+                def set_initial_volume():
+                    time.sleep(2)
+                    self._vlc_command(f"volume {self._music_volume}")
+                
+                threading.Thread(target=set_initial_volume, daemon=True).start()
+
             except FileNotFoundError as ex:
                 print(f"Missing tool: {ex}. Install yt-dlp and VLC.")
                 self._music_on = False
@@ -502,6 +534,29 @@ class LofiliApp:
                       font=("Helvetica", 10, "bold"),
                       width=bw - 16, justify="center")
 
+    def _play_tts(self, audio_file):
+        """Threaded, fail-safe TTS playback handler."""
+        if not os.path.exists(audio_file):
+            return
+            
+        def _play():
+            try:
+                vlc_path = get_vlc_path()
+                if not vlc_path:
+                    print("TTS Error: VLC path not found.")
+                    return
+
+                subprocess.Popen(
+                    [vlc_path, "--intf", "dummy", "--no-video",
+                     f"--volume={self._tts_volume}",
+                     "--play-and-exit", audio_file],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except Exception as e:
+                print(f"TTS Error: {e}")
+                
+        threading.Thread(target=_play, daemon=True).start()
+
     def _show_bubble(self):
         msgs = MESSAGES.get(self.state, [])
         if not msgs:
@@ -510,45 +565,15 @@ class LofiliApp:
         self._bubble_text = msgs[idx]
         _msg_index[self.state] = idx + 1
 
-        # Play corresponding TTS audio for DRIFTING messages
+        # Play corresponding TTS audio
         if self.state == "DRIFTING" and idx < len(DRIFTING_AUDIO):
-            audio_file = DRIFTING_AUDIO[idx]
-            if os.path.exists(audio_file):
-                def _play():
-                    vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
-                    subprocess.Popen(
-                        [vlc_path, "--intf", "dummy", "--no-video",
-                         f"--volume={self._tts_volume}",
-                         "--play-and-exit", audio_file],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                    )
-                threading.Thread(target=_play, daemon=True).start()
+            self._play_tts(DRIFTING_AUDIO[idx])
 
         if self.state == "CALIBRATING" and idx < len(CALIBRATING_AUDIO):
-            audio_file = CALIBRATING_AUDIO[idx]
-            if os.path.exists(audio_file):
-                def _play():
-                    vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
-                    subprocess.Popen(
-                        [vlc_path, "--intf", "dummy", "--no-video",
-                         f"--volume={self._tts_volume}",
-                         "--play-and-exit", audio_file],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                    )
-                threading.Thread(target=_play, daemon=True).start()
+            self._play_tts(CALIBRATING_AUDIO[idx])
 
         if self.state == "CALIBRATING_COMPLETE" and idx < len(CALIBRATING_COMPLETE_AUDIO):
-            audio_file = CALIBRATING_COMPLETE_AUDIO[idx]
-            if os.path.exists(audio_file):
-                def _play():
-                    vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
-                    subprocess.Popen(
-                        [vlc_path, "--intf", "dummy", "--no-video",
-                         f"--volume={self._tts_volume}",
-                         "--play-and-exit", audio_file],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                    )
-                threading.Thread(target=_play, daemon=True).start()
+            self._play_tts(CALIBRATING_COMPLETE_AUDIO[idx])
 
         if self._bubble_job:
             self.root.after_cancel(self._bubble_job)
