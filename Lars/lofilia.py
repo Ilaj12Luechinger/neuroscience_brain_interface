@@ -30,6 +30,8 @@ POLL_INTERVAL   = 500    # ms between state file reads
 FRAME_INTERVAL  = 333    # ms between gif frames (~3fps default)
 BUBBLE_DURATION = 7000   # ms before speech bubble hides
 
+CALIBRATION_SECONDS = 60    # seconds to stay in CALIBRATING state before auto-switching to FOCUSED
+
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 LOFI_URL    = "https://www.youtube.com/watch?v=EWrX250Zhko"
 STATE_FILE = os.path.join(SCRIPT_DIR, "lofilia_state.txt")
@@ -157,6 +159,9 @@ class LofiliApp:
         self._vlc_rc_port     = 9999   # VLC remote control port
         self._music_volume    = 80    # 0-200 (VLC scale) — lofi stream
         self._tts_volume      = 100   # 0-200 (VLC scale) — TTS voice
+        
+        # Track calibration time
+        self._calib_start_time = 0
 
         # Ensure background VLC processes are killed on exit or crash
         atexit.register(self._cleanup)
@@ -180,11 +185,11 @@ class LofiliApp:
 
     def _show_menu(self, e):
         menu = tk.Menu(self.root, tearoff=0)
-        menu.add_command(label="Demo: FOCUSED",     command=lambda: self._force_state("FOCUSED"))
-        menu.add_command(label="Demo: DRIFTING",    command=lambda: self._force_state("DRIFTING"))
-        menu.add_command(label="Demo: CALIBRATING", command=lambda: self._force_state("CALIBRATING"))
-        menu.add_command(label="Demo: CALIBRATING COMPLETE", command=lambda: self._force_state("CALIBRATING_COMPLETE"))
-        menu.add_separator()
+        # menu.add_command(label="Demo: FOCUSED",     command=lambda: self._force_state("FOCUSED"))
+        # menu.add_command(label="Demo: DRIFTING",    command=lambda: self._force_state("DRIFTING"))
+        # menu.add_command(label="Demo: CALIBRATING", command=lambda: self._force_state("CALIBRATING"))
+        # menu.add_command(label="Demo: CALIBRATING COMPLETE", command=lambda: self._force_state("CALIBRATING_COMPLETE"))
+        # menu.add_separator()
         menu.add_command(label="\u2699\ufe0f  Settings...", command=self._show_settings)
         menu.add_separator()
         menu.add_command(label="Close", command=self._quit)
@@ -469,6 +474,11 @@ class LofiliApp:
                 threading.Thread(target=self._pause_music, daemon=True).start()
             elif self.prev_state == "DRIFTING":
                 threading.Thread(target=self._resume_music, daemon=True).start()
+            
+            # Start countdown when entering CALIBRATING state
+            if self.state == "CALIBRATING":
+                self._calib_start_time = time.time()
+                
             self.prev_state = self.state
 
         frames = self.frames.get(self.state, self.frames["FOCUSED"])
@@ -490,7 +500,15 @@ class LofiliApp:
         dot_color = STATUS_COLORS.get(self.state, "#aaa")
         self.canvas.create_oval(12, bar_y + 12, 24, bar_y + 24,
                                 fill=dot_color, outline="")
-        label = self.state if self.state != "CALIBRATING" else "Calibrating..."
+        
+        # Calculate label text with countdown
+        if self.state == "CALIBRATING":
+            elapsed = int(time.time() - self._calib_start_time)
+            remaining = max(0, CALIBRATION_SECONDS - elapsed)
+            label = f"Calibrating... {remaining}s"
+        else:
+            label = self.state
+
         self.canvas.create_text(34, bar_y + 18, text=label,
                                 anchor="w", fill=dot_color,
                                 font=("Courier", 10, "bold"))
