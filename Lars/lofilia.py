@@ -149,91 +149,135 @@ class LofiliApp:
 
     def _show_menu(self, e):
         menu = tk.Menu(self.root, tearoff=0)
-
-        # Demo states
         menu.add_command(label="Demo: FOCUSED",     command=lambda: self._force_state("FOCUSED"))
         menu.add_command(label="Demo: DRIFTING",    command=lambda: self._force_state("DRIFTING"))
         menu.add_command(label="Demo: CALIBRATING", command=lambda: self._force_state("CALIBRATING"))
         menu.add_separator()
-
-        # FPS submenu
-        fps_menu = tk.Menu(menu, tearoff=0)
-        for fps in [0.5, 1, 2, 3, 4, 6, 8, 12]:
-            interval = int(1000 / fps)
-            current = "✓ " if self._frame_interval == interval else "   "
-            default_tag = " (default)" if fps == 3 else ""
-            fps_menu.add_command(
-                label=f"{current}{fps} fps{default_tag}",
-                command=lambda i=interval: self._set_fps(i)
-            )
-        fps_menu.add_separator()
-        fps_menu.add_command(label="Custom...", command=self._custom_fps)
-        menu.add_cascade(label="Framerate", menu=fps_menu)
-
-        # Opacity submenu
-        opacity_menu = tk.Menu(menu, tearoff=0)
-        for pct in [20, 40, 60, 70, 80, 90, 100]:
-            val = pct / 100
-            current = "✓ " if abs(self._opacity - val) < 0.05 else "   "
-            opacity_menu.add_command(
-                label=f"{current}{pct}%",
-                command=lambda v=val: self._set_opacity(v)
-            )
-        menu.add_cascade(label="Opacity", menu=opacity_menu)
-
-        menu.add_separator()
-        music_label = "🔇 Stop Music" if self._music_on else "🎵 Play Music"
-        menu.add_command(label=music_label, command=self._toggle_music)
-
-        # Music volume submenu
-        mvol_menu = tk.Menu(menu, tearoff=0)
-        for vol in [10, 25, 50, 75, 100, 125, 150]:
-            current = "✓ " if self._music_volume == vol else "   "
-            default_tag = " (default)" if vol == 80 else ""
-            mvol_menu.add_command(
-                label=f"{current}{vol}%{default_tag}",
-                command=lambda v=vol: self._set_music_volume(v)
-            )
-        mvol_menu.add_separator()
-        mvol_menu.add_command(label="Custom...", command=lambda: self._custom_volume("music"))
-        menu.add_cascade(label="Music Volume", menu=mvol_menu)
-
-        # TTS volume submenu
-        tvol_menu = tk.Menu(menu, tearoff=0)
-        for vol in [10, 25, 50, 75, 100, 125, 150]:
-            current = "✓ " if self._tts_volume == vol else "   "
-            default_tag = " (default)" if vol == 100 else ""
-            tvol_menu.add_command(
-                label=f"{current}{vol}%{default_tag}",
-                command=lambda v=vol: self._set_tts_volume(v)
-            )
-        tvol_menu.add_separator()
-        tvol_menu.add_command(label="Custom...", command=lambda: self._custom_volume("tts"))
-        menu.add_cascade(label="Lofilia Voice Volume", menu=tvol_menu)
+        menu.add_command(label="\u2699\ufe0f  Settings...", command=self._show_settings)
         menu.add_separator()
         menu.add_command(label="Close", command=self._quit)
         menu.tk_popup(e.x_root, e.y_root)
 
-    def _set_fps(self, interval_ms: int):
-        self._frame_interval = interval_ms
+    def _show_settings(self):
+        if hasattr(self, "_settings_win") and self._settings_win.winfo_exists():
+            self._settings_win.lift()
+            return
 
-    def _custom_fps(self):
         win = tk.Toplevel(self.root)
-        win.title("Custom FPS")
-        win.geometry("200x90")
+        win.title("Lofilia Settings")
+        win.geometry("360x470")
+        win.configure(bg="#1e1e2e")
         win.attributes("-topmost", True)
-        tk.Label(win, text="Enter FPS (1-60):").pack(pady=6)
-        entry = tk.Entry(win, width=8, justify="center")
-        entry.insert(0, str(1000 // self._frame_interval))
-        entry.pack()
-        def apply():
-            try:
-                fps = max(1, min(60, int(entry.get())))
-                self._frame_interval = 1000 // fps
-            except ValueError:
-                pass
+        win.resizable(False, False)
+        self._settings_win = win
+
+        PAD    = 16
+        BG     = "#1e1e2e"
+        FG     = "#cdd6f4"
+        ACCENT = "#6c5ce7"
+        TROUGH = "#313244"
+
+        # ── Pending values (only applied on Save) ─────────────────────────────
+        p = {
+            "fps":          round(1000 / self._frame_interval, 1),
+            "opacity":      int(self._opacity * 100),
+            "scale":        getattr(self, "_overlay_scale", 100),
+            "music_on":     self._music_on,
+            "music_vol":    self._music_volume,
+            "tts_vol":      self._tts_volume,
+            "bubble_dur":   BUBBLE_DURATION // 1000,
+        }
+
+        def section(text):
+            tk.Frame(win, bg=ACCENT, height=1).pack(fill="x", padx=PAD, pady=(14, 0))
+            tk.Label(win, text=text, bg=BG, fg=ACCENT,
+                     font=("Helvetica", 10, "bold")).pack(anchor="w", padx=PAD, pady=(4, 0))
+
+        def slider_row(label, key, from_, to, resolution, fmt=None):
+            if fmt is None:
+                fmt = lambda v: f"{float(v):.0f}"
+            row = tk.Frame(win, bg=BG)
+            row.pack(fill="x", padx=PAD, pady=4)
+            tk.Label(row, text=label, bg=BG, fg=FG, width=20, anchor="w",
+                     font=("Helvetica", 9)).pack(side="left")
+            val_lbl = tk.Label(row, text=fmt(p[key]), bg=BG, fg=ACCENT,
+                               width=6, font=("Helvetica", 9, "bold"))
+            val_lbl.pack(side="right")
+            def on_change(v, lbl=val_lbl, k=key, f=fmt):
+                lbl.config(text=f(float(v)))
+                p[k] = float(v)
+            s = tk.Scale(row, from_=from_, to=to, resolution=resolution,
+                         orient="horizontal", bg=BG, fg="white",
+                         troughcolor=TROUGH, activebackground="white",
+                         highlightthickness=0, bd=0, sliderrelief="flat",
+                         command=on_change, showvalue=False, length=160)
+            s.set(p[key])
+            s.pack(side="right", padx=(0, 6))
+
+        # Animation
+        section("Animation")
+        slider_row("Framerate (fps)", "fps", 0.5, 12, 0.5, fmt=lambda v: f"{float(v):.1f}")
+        slider_row("Opacity (%)",     "opacity", 10, 100, 5)
+        slider_row("Overlay Size (%)", "scale", 50, 200, 10)
+
+        # Audio
+        section("Audio")
+        music_var = tk.BooleanVar(value=p["music_on"])
+        music_row = tk.Frame(win, bg=BG)
+        music_row.pack(fill="x", padx=PAD, pady=4)
+        tk.Label(music_row, text="Lofi Stream", bg=BG, fg=FG, width=20, anchor="w",
+                 font=("Helvetica", 9)).pack(side="left")
+        def on_music_toggle():
+            p["music_on"] = music_var.get()
+        tk.Checkbutton(music_row, variable=music_var, bg=BG, fg=FG,
+                       activebackground=BG, selectcolor=ACCENT,
+                       command=on_music_toggle).pack(side="right")
+
+        slider_row("Music Volume (%)", "music_vol", 0, 150, 5)
+        slider_row("Voice Volume (%)", "tts_vol",   0, 150, 5)
+        slider_row("Bubble Duration (s)", "bubble_dur", 2, 20, 1)
+
+        # ── Save / Cancel ─────────────────────────────────────────────────────
+        def save():
+            global BUBBLE_DURATION
+            # Animation
+            self._frame_interval = int(1000 / max(0.5, p["fps"]))
+            self._opacity = p["opacity"] / 100
+            self.root.attributes("-alpha", self._opacity)
+
+            # Size
+            scale = int(p["scale"])
+            self._overlay_scale = scale
+            w = int(OVERLAY_WIDTH  * scale / 100)
+            h = int(OVERLAY_HEIGHT * scale / 100)
+            gif_size = (w, h - 40)
+            for state, path in [("FOCUSED", GIF_FOCUSED), ("DRIFTING", GIF_DRIFTING),
+                                 ("CALIBRATING", GIF_FOCUSED)]:
+                self.frames[state] = load_gif(path, gif_size)
+            self.canvas.config(width=w, height=h)
+            self.root.geometry(f"{w}x{h}")
+
+            # Audio
+            if p["music_on"] != self._music_on:
+                self._toggle_music()
+            self._music_volume = int(p["music_vol"])
+            self._tts_volume   = int(p["tts_vol"])
+            if self._music_on:
+                self._vlc_command(f"volume {self._music_volume}")
+            BUBBLE_DURATION = int(p["bubble_dur"]) * 1000
+
             win.destroy()
-        tk.Button(win, text="Apply", command=apply).pack(pady=6)
+
+        btn_row = tk.Frame(win, bg=BG)
+        btn_row.pack(pady=16)
+        tk.Button(btn_row, text="  Save  ", bg=ACCENT, fg="white",
+                  font=("Helvetica", 10, "bold"), relief="flat",
+                  padx=10, pady=5, cursor="hand2",
+                  command=save).pack(side="left", padx=6)
+        tk.Button(btn_row, text=" Cancel ", bg=TROUGH, fg=FG,
+                  font=("Helvetica", 10), relief="flat",
+                  padx=10, pady=5, cursor="hand2",
+                  command=win.destroy).pack(side="left", padx=6)
 
     def _set_opacity(self, value: float):
         self._opacity = value
@@ -330,13 +374,15 @@ class LofiliApp:
             pass
 
     def _pause_music(self):
+        """Mute VLC when drifting — keeps the stream alive."""
         if self._music_on and not self._music_paused:
-            self._vlc_command("pause")
+            self._vlc_command("volume 0")
             self._music_paused = True
 
     def _resume_music(self):
+        """Restore volume when focused again."""
         if self._music_on and self._music_paused:
-            self._vlc_command("play")
+            self._vlc_command(f"volume {self._music_volume}")
             self._music_paused = False
 
     def _stop_music(self):
@@ -388,10 +434,11 @@ class LofiliApp:
         # GIF image
         self.canvas.create_image(0, 0, anchor="nw", image=frame)
 
-        # Bottom bar
-        bar_y = OVERLAY_HEIGHT - 40
-        self.canvas.create_rectangle(0, bar_y, OVERLAY_WIDTH, OVERLAY_HEIGHT,
-                                     fill=BG_COLOR, outline="")
+        # Bottom bar — use actual canvas dimensions so it works after resize
+        cw = self.canvas.winfo_width()  or OVERLAY_WIDTH
+        ch = self.canvas.winfo_height() or OVERLAY_HEIGHT
+        bar_y = ch - 40
+        self.canvas.create_rectangle(0, bar_y, cw, ch, fill=BG_COLOR, outline="")
 
         # Status dot + label
         dot_color = STATUS_COLORS.get(self.state, "#aaa")
@@ -403,7 +450,7 @@ class LofiliApp:
                                 font=("Courier", 10, "bold"))
 
         # Close button
-        self.canvas.create_text(OVERLAY_WIDTH - 14, bar_y + 18,
+        self.canvas.create_text(cw - 14, bar_y + 18,
                                 text="✕", anchor="e", fill="#666",
                                 font=("Courier", 12, "bold"),
                                 tags="close_btn")
