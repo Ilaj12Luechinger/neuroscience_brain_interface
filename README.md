@@ -61,7 +61,7 @@ Overall, the solution combines signal processing, real-time classification, and 
 ## Architecture
 
 
-![alt text](image-3.png)
+![alt text](architecture.png)
 
 
 
