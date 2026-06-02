@@ -1,1 +1,13 @@
-CALIBRATING
+{
+  "state": "CALIBRATING",
+  "time_since_state_change": 53.68,
+  "calibration_progress": 0.951,
+  "calibration_seconds": 60.0,
+  "iaf": null,
+  "engagement": 1.9074573608276402,
+  "relaxation": 0.1956446493680979,
+  "theta_baseline": 1e-08,
+  "paf": null,
+  "cog": null,
+  "complete": false
+}
