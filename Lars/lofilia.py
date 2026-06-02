@@ -34,12 +34,22 @@ LOFI_URL    = "https://www.youtube.com/watch?v=EWrX250Zhko"
 STATE_FILE = os.path.join(SCRIPT_DIR, "lofilia_state.txt")
 GIF_FOCUSED   = os.path.join(SCRIPT_DIR, "edited1.gif")
 GIF_DRIFTING  = os.path.join(SCRIPT_DIR, "edited2.gif")
+GIF_CALIBRATING = os.path.join(SCRIPT_DIR, "Loading_icon.gif")  # reuse focused during calibration
+GIF_CALIBRATING_COMPLETE = os.path.join(SCRIPT_DIR, "edited1.gif")
 
 # TTS audio files matching each DRIFTING message (same order)
 DRIFTING_AUDIO = [
     os.path.join(SCRIPT_DIR, "ttsreader_i-noticed-.mp3"),
     os.path.join(SCRIPT_DIR, "ttsreader_your-conce.mp3"),
     os.path.join(SCRIPT_DIR, "ttsreader_looks-like.mp3"),
+]
+
+CALIBRATING_AUDIO = [
+    os.path.join(SCRIPT_DIR, "ttsreader_calibratin.mp3"),
+]
+
+CALIBRATING_COMPLETE_AUDIO = [
+    os.path.join(SCRIPT_DIR, "ttsreader_calibratio.mp3"),
 ]
 
 MESSAGES = {
@@ -54,8 +64,10 @@ MESSAGES = {
         "Nice work! 🎧",
     ],
     "CALIBRATING": [
-        "Calibrating... sit still 🎧",
-        "Measuring your baseline...",
+        "Calibrating device... Please wait...",
+    ],
+    "CALIBRATING_COMPLETE": [
+        "Calibration complete! Let's get to work 🎉",
     ],
 }
 _msg_index = {k: 0 for k in MESSAGES}
@@ -115,7 +127,8 @@ class LofiliApp:
         self.frames = {
             "FOCUSED":     load_gif(GIF_FOCUSED,  gif_size),
             "DRIFTING":    load_gif(GIF_DRIFTING, gif_size),
-            "CALIBRATING": load_gif(GIF_FOCUSED,  gif_size),  # reuse focused during calib
+            "CALIBRATING": load_gif(GIF_CALIBRATING,  gif_size),  # reuse focused during calib
+            "CALIBRATING_COMPLETE": load_gif(GIF_CALIBRATING_COMPLETE, gif_size),  # reuse focused during calib
         }
         print(f"  FOCUSED:  {len(self.frames['FOCUSED'])} frames")
         print(f"  DRIFTING: {len(self.frames['DRIFTING'])} frames")
@@ -152,6 +165,7 @@ class LofiliApp:
         menu.add_command(label="Demo: FOCUSED",     command=lambda: self._force_state("FOCUSED"))
         menu.add_command(label="Demo: DRIFTING",    command=lambda: self._force_state("DRIFTING"))
         menu.add_command(label="Demo: CALIBRATING", command=lambda: self._force_state("CALIBRATING"))
+        menu.add_command(label="Demo: CALIBRATING COMPLETE", command=lambda: self._force_state("CALIBRATING_COMPLETE"))
         menu.add_separator()
         menu.add_command(label="\u2699\ufe0f  Settings...", command=self._show_settings)
         menu.add_separator()
@@ -499,6 +513,32 @@ class LofiliApp:
         # Play corresponding TTS audio for DRIFTING messages
         if self.state == "DRIFTING" and idx < len(DRIFTING_AUDIO):
             audio_file = DRIFTING_AUDIO[idx]
+            if os.path.exists(audio_file):
+                def _play():
+                    vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
+                    subprocess.Popen(
+                        [vlc_path, "--intf", "dummy", "--no-video",
+                         f"--volume={self._tts_volume}",
+                         "--play-and-exit", audio_file],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                threading.Thread(target=_play, daemon=True).start()
+
+        if self.state == "CALIBRATING" and idx < len(CALIBRATING_AUDIO):
+            audio_file = CALIBRATING_AUDIO[idx]
+            if os.path.exists(audio_file):
+                def _play():
+                    vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
+                    subprocess.Popen(
+                        [vlc_path, "--intf", "dummy", "--no-video",
+                         f"--volume={self._tts_volume}",
+                         "--play-and-exit", audio_file],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                threading.Thread(target=_play, daemon=True).start()
+
+        if self.state == "CALIBRATING_COMPLETE" and idx < len(CALIBRATING_COMPLETE_AUDIO):
+            audio_file = CALIBRATING_COMPLETE_AUDIO[idx]
             if os.path.exists(audio_file):
                 def _play():
                     vlc_path = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
