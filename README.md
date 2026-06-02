@@ -1,4 +1,4 @@
-# Lofi Girl on Steroids ##### (kinda)
+# Lofi Girl on Steroids (kinda)
 
 ## Problem Definition
 
@@ -22,7 +22,7 @@ At the same time, the project raises important ethical considerations. EEG data 
 
 ## Solution Design
 
-Our solution is designed as a real-time EEG-based focus awareness system. The system receives EEG brain signal data, processes the signal, extracts relevant frequency-band features, and classifies the user’s current cognitive state. The result is then translated into simple feedback states: `FOCUSED` or `DRIFTING`.
+Our solution is designed as a real-time EEG-based focus awareness system. The system receives EEG brain signal data, processes the signal, extracts relevant frequency-band features, and classifies the user’s current cognitive state. The result is then translated into simple feedback states, `FOCUSED` or `DRIFTING`.
 
 The project supports two different data input modes. In offline mode, EEG data is replayed from a CSV file, which makes it possible to test and debug the system without a connected device. In live mode, the system connects to an IDUN Guardian EEG device and processes incoming raw EEG data in real time.
 
@@ -38,3 +38,152 @@ Overall, the solution combines signal processing, real-time classification, and 
 
 
 ## Architecture
+### Temporär!!!
+![alt text](image.png)
+
+
+## How It Works
+
+The system works by taking EEG brain signal data, processing it in real time, and converting it into simple feedback states that describe the user’s current focus level.
+
+First, the system receives EEG data either from a recorded CSV file in offline mode or directly from an IDUN Guardian EEG device in live mode. The incoming samples are stored in a rolling buffer so that the system always has the most recent signal data available for analysis.
+
+Next, the raw EEG signal is filtered. A notch filter is used to reduce 50 Hz power-line noise, and a bandpass filter keeps the signal within the relevant EEG frequency range. This step helps remove noise and makes the signal more suitable for feature extraction.
+
+After filtering, the system calculates the power spectral density using Welch’s method. This shows how much signal power exists at different frequencies. From this spectrum, the system extracts the power of important EEG frequency bands, especially theta, alpha, and beta.
+
+During the first 60 seconds, the system runs a calibration phase. In this phase, it collects baseline EEG information from the user. The theta baseline is later used to make the focus classification more stable and better adapted to the individual user.
+
+Once calibration is complete, the system calculates two main feature scores, engagement and relaxation. The engagement score is based mainly on beta activity compared to alpha and theta activity. A higher engagement score is interpreted as a more focused state. The relaxation score compares alpha activity to beta activity and can indicate a more drifting or less engaged state.
+
+To avoid unstable results, the feature values are smoothed over time. The system also uses a minimum dwell time, which means that a new state must remain active for a short period before it is confirmed. This prevents the classification from switching too quickly between states.
+
+Finally, the system classifies the user into one of two states: `FOCUSED` or `DRIFTING`. When the state changes, the system can provide audio feedback. It also writes the current state to a shared text file called `lofilia_state.txt`, which will be used by the external overlay script `lofilia.py`.
+
+In summary, the system follows this pipeline:
+
+EEG input → buffering → filtering → frequency analysis → feature extraction → calibration → classification → audio and overlay feedback
+
+
+## Installation
+
+This project uses Python and a `requirements.txt` file to install all required dependencies. The setup is slightly different depending on the operating system.
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+---
+
+## Windows
+
+### Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+### Activate the Virtual Environment
+
+In Command Prompt:
+
+```bash
+venv\Scripts\activate
+```
+
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run the Project
+
+```bash
+python main.py
+```
+
+---
+
+## macOS
+
+### Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+```
+
+### Activate the Virtual Environment
+
+```bash
+source venv/bin/activate
+```
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run the Project
+
+```bash
+python3 main.py
+```
+
+---
+
+## Linux
+
+### Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+```
+
+### Activate the Virtual Environment
+
+```bash
+source venv/bin/activate
+```
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run the Project
+
+```bash
+python3 main.py
+```
+
+---
+
+## Requirements File
+
+The `requirements.txt` file should include the Python packages required by the project:
+
+```txt
+numpy
+pandas
+scipy
+sounddevice
+idun-guardian-sdk
+```
+
+The `idun-guardian-sdk` package is only required for live mode with the IDUN Guardian EEG device. For offline testing with recorded CSV data, the project can be run without a connected EEG device.
+
+Before running the project, check the configuration in the Python file:
+
+```python
+MODE = "offline"  # or "live"
+CSV_FILE = "path/to/your/eeg_data.csv"
+```
+
+For live mode, make sure that the EEG device is connected and that the API token and device address are configured securely. API tokens should never be uploaded to GitHub or shared publicly.
