@@ -12,8 +12,8 @@ from scipy.signal import welch
 from scipy.integrate import trapezoid
 
 # IMPORTANT:
-# Replace API token on line 41 with your actual API token from the IDUN Guardian dashboard.
-# Replace Device MAC address on line 42 with your actual device MAC address (format: XX:XX:XX:XX:XX:XX).
+# Replace API token on line 42 with your actual API token from the IDUN Guardian dashboard.
+# Replace Device MAC address on line 33 with your actual device MAC address (format: XX:XX:XX:XX:XX:XX).
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 

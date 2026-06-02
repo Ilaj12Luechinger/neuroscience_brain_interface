@@ -275,7 +275,11 @@ The `idun-guardian-sdk` package is only required for live mode with the IDUN Gua
 
 
 ## Configuration
+IMPORTANT:
+Replace API token in eeg_backend.py on line 42 with your actual API token from the IDUN Guardian dashboard.
+Replace Device MAC address in eeg_backend.py on line 33 with your actual device MAC address (format: XX:XX:XX:XX:XX:XX).
 
+Replace the Mac address in lofilia.py on line 55 with the actual device Mac Adress
 
 The project uses a `lofilia_config.json` file to store the main user settings for the launcher and EEG backend. This makes it easier to change settings without editing the Python code directly.
 
