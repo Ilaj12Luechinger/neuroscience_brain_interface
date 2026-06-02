@@ -8,10 +8,11 @@ Reads state from lofilia_state.txt (written by the classifier every frame).
 Right-click to settings or close.
 Drag to move.
 
-Required files in the same folder:
-    edited1.gif       — focused state animation
-    edited2.gif       — drifting state animation
-    Loading_icon.gif  — calibration animation
+Required files in the "ui" subfolder:
+    edited1.gif        — focused state animation
+    edited2.gif        — drifting state animation
+    Loading_icon.gif   — calibration animation
+    ttsreader_*.mp3    — TTS voice audio files
 """
 
 import tkinter as tk
@@ -34,15 +35,18 @@ FRAME_INTERVAL = 333
 BUBBLE_DURATION = 7000
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+UI_DIR = os.path.join(SCRIPT_DIR, "ui")
 CONFIG_FILE = os.path.join(SCRIPT_DIR, "lofilia_config.json")
 STATE_FILE = os.path.join(SCRIPT_DIR, "lofilia_state.txt")
 
-LOFI_URL = "https://www.youtube.com/watch?v=EWrX250Zhko"
+
+LOFI_URL = "https://www.youtube.com/watch?v=5qap5aO4i9A" # for live music from the Lo-Fi Girl YouTube channel
 BACKEND_SCRIPT = os.path.join(SCRIPT_DIR, "eeg_backend.py")
 
-GIF_FOCUSED = os.path.join(SCRIPT_DIR, "edited1.gif")
-GIF_DRIFTING = os.path.join(SCRIPT_DIR, "edited2.gif")
-GIF_CALIBRATING = os.path.join(SCRIPT_DIR, "Loading_icon.gif")
+
+GIF_FOCUSED = os.path.join(UI_DIR, "edited1.gif")
+GIF_DRIFTING = os.path.join(UI_DIR, "edited2.gif")
+GIF_CALIBRATING = os.path.join(UI_DIR, "Loading_icon.gif")
 
 DEFAULT_SETTINGS = {
     "device_address": "E0:53:73:AB:F9:05",
@@ -53,13 +57,14 @@ DEFAULT_SETTINGS = {
 
 # TTS audio files matching each DRIFTING message (same order)
 DRIFTING_AUDIO = [
-    os.path.join(SCRIPT_DIR, "ttsreader_i-noticed-.mp3"),
-    os.path.join(SCRIPT_DIR, "ttsreader_your-conce.mp3"),
-    os.path.join(SCRIPT_DIR, "ttsreader_looks-like.mp3"),
+    os.path.join(UI_DIR, "ttsreader_i-noticed-.mp3"),
+    os.path.join(UI_DIR, "ttsreader_your-conce.mp3"),
+    os.path.join(UI_DIR, "ttsreader_looks-like.mp3"),
 ]
 
+
 CALIBRATING_AUDIO = [
-    os.path.join(SCRIPT_DIR, "ttsreader_calibratin.mp3"),
+    os.path.join(UI_DIR, "ttsreader_calibratin.mp3"),
 ]
 
 MESSAGES = {
@@ -709,7 +714,7 @@ class LofiliApp:
             if self.prev_state == "CALIBRATING" and self.state != "CALIBRATING":
                 calib_msg = "Calibration complete! Let's get to work 🎉"
                 self._bubble_text = calib_msg
-                calib_audio = os.path.join(SCRIPT_DIR, "ttsreader_calibratio.mp3")
+                calib_audio = os.path.join(UI_DIR, "ttsreader_calibratio.mp3")
                 self._play_tts(calib_audio)
                 if self._bubble_job:
                     self.root.after_cancel(self._bubble_job)

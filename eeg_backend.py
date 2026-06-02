@@ -11,6 +11,8 @@ from scipy import signal
 from scipy.signal import welch
 from scipy.integrate import trapezoid
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 try:
     from idun_guardian_sdk import GuardianClient
     _SDK_AVAILABLE = True
@@ -27,7 +29,7 @@ parser.add_argument("--mode", choices=["live", "offline"], default="live")
 parser.add_argument("--device-address", default="E0:53:73:AB:F9:05")
 parser.add_argument(
     "--csv-file",
-    default=r"c:\Users\micha\Documents\FHGR\neuroscience_brain_interface\Lars\livedata_test.csv",
+    default=str(_SCRIPT_DIR / "offline_data_analysis" / "livedata_test.csv"),
 )
 parser.add_argument("--use-iaf", type=parse_bool, default=True)
 parser.add_argument("--calibration-seconds", type=float, default=5.0)
