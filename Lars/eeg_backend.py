@@ -18,7 +18,7 @@ try:
 except ImportError:
     _SDK_AVAILABLE = False
 
-MODE = "offline"   # "offline" | "live"
+MODE = "live"   # "offline" | "live"
 
 fs             = 250
 WINDOW_SECONDS = 6
@@ -28,11 +28,11 @@ BUFFER_SIZE    = fs * WINDOW_SECONDS
 # peak alpha frequency (IAF) measured during calibration rather than fixed values.
 # Acceptance range: IAF_MIN-IAF_MAX Hz (typical for young adult males: 9-12 Hz).
 # Set to False to always use standard bands (8-12 Hz).
-USE_IAF = False
+USE_IAF = True
 IAF_MIN = 9.0    # Hz -- lower bound for valid IAF
 IAF_MAX = 12.0   # Hz -- upper bound for valid IAF
 
-CALIBRATION_SECONDS = 60
+CALIBRATION_SECONDS = 5
 
 BANDS = {
     "delta": (0.5, 4),
