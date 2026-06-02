@@ -29,7 +29,7 @@ import json
 # ── Config ─────────────────────────────────────────────────────────────────────
 OVERLAY_WIDTH = 480
 OVERLAY_HEIGHT = 340
-POLL_INTERVAL = 500
+POLL_INTERVAL = 1000
 FRAME_INTERVAL = 333
 BUBBLE_DURATION = 7000
 
@@ -350,6 +350,7 @@ class LofiliApp:
         self._frame_idx = 0
         self._bubble_text = ""
         self._bubble_job = None
+        self._drift_repeat_job = None  # repeating reminder while DRIFTING
         self._frame_interval = FRAME_INTERVAL
         self._opacity = 0.97
         self._music_proc = None
@@ -358,12 +359,15 @@ class LofiliApp:
         self._music_paused = False
         self._vlc_rc_port = 9999
         self._music_volume = 80
-        self._tts_volume = 100
+        self._music_volume = 100
         self._vlc_lock = threading.Lock()
         self._calib_start_time = 0
-        self._last_state_update = 0.0  # wall time of last state file read
+        self._last_state_update = 0.0
         self._calib_progress = 0.0
         self._calib_seconds = 60.0
+        self._engagement = None
+        self._relaxation = None
+        self._paf = None
 
         atexit.register(self._cleanup)
 
@@ -434,7 +438,7 @@ class LofiliApp:
             "scale": getattr(self, "_overlay_scale", 100),
             "music_on": self._music_on,
             "music_vol": self._music_volume,
-            "tts_vol": self._tts_volume,
+            "tts_vol": self._music_volume,
             "bubble_dur": BUBBLE_DURATION // 1000,
         }
 
@@ -486,7 +490,7 @@ class LofiliApp:
         music_var = tk.BooleanVar(value=p["music_on"])
         music_row = tk.Frame(win, bg=BG)
         music_row.pack(fill="x", padx=PAD, pady=4)
-        tk.Label(music_row, text="Lofi Stream", bg=BG, fg=FG, width=20, anchor="w", font=("Helvetica", 9)).pack(
+        tk.Label(music_row, text="Audio On/Off", bg=BG, fg=FG, width=20, anchor="w", font=("Helvetica", 9)).pack(
             side="left"
         )
 
@@ -503,7 +507,7 @@ class LofiliApp:
             command=on_music_toggle,
         ).pack(side="right")
 
-        slider_row("Music Volume (%)", "music_vol", 0, 150, 5)
+        slider_row("Volume (%)", "music_vol", 0, 150, 5)
         slider_row("Voice Volume (%)", "tts_vol", 0, 150, 5)
         slider_row("Bubble Duration (s)", "bubble_dur", 2, 20, 1)
 
@@ -528,7 +532,7 @@ class LofiliApp:
             if p["music_on"] != self._music_on:
                 self._toggle_music()
             self._music_volume = int(p["music_vol"])
-            self._tts_volume = int(p["tts_vol"])
+            self._music_volume = int(p["tts_vol"])
             if self._music_on:
                 self._vlc_command(f"volume {self._music_volume}")
             BUBBLE_DURATION = int(p["bubble_dur"]) * 1000
@@ -627,13 +631,23 @@ class LofiliApp:
 
     def _pause_music(self):
         if self._music_on and not self._music_paused:
-            self._vlc_command("volume 0")
             self._music_paused = True
+            # Retry a few times with delay to ensure VLC receives it
+            for _ in range(3):
+                self._vlc_command("volume 0")
+                time.sleep(0.3)
+                if not self._music_paused:  # state changed back, stop retrying
+                    break
 
     def _resume_music(self):
         if self._music_on and self._music_paused:
-            self._vlc_command(f"volume {self._music_volume}")
             self._music_paused = False
+            # Retry to ensure volume is properly restored
+            for _ in range(3):
+                self._vlc_command(f"volume {self._music_volume}")
+                time.sleep(0.3)
+                if self._music_paused:  # drifted again, stop retrying
+                    break
 
     def _stop_music(self):
         self._music_on = False
@@ -674,6 +688,12 @@ class LofiliApp:
                         state = data.get("state", "CALIBRATING")
                         self._calib_progress = float(data.get("calibration_progress", 0.0))
                         self._calib_seconds  = float(data.get("calibration_seconds", 60.0))
+                        e = data.get("engagement")
+                        r = data.get("relaxation")
+                        self._engagement = float(e) if e is not None else None
+                        self._relaxation = float(r) if r is not None else None
+                        p = data.get("paf")
+                        self._paf = float(p) if p is not None else None
                 if state in self.frames:
                     self.state = state
                     self._last_state_update = time.time()
@@ -699,8 +719,10 @@ class LofiliApp:
 
             if self.state == "DRIFTING":
                 threading.Thread(target=self._pause_music, daemon=True).start()
+                self._schedule_drift_repeat()
             elif self.prev_state == "DRIFTING":
                 threading.Thread(target=self._resume_music, daemon=True).start()
+                self._cancel_drift_repeat()
 
             if self.state == "CALIBRATING":
                 self._calib_start_time = time.time()
@@ -728,11 +750,22 @@ class LofiliApp:
             remaining = max(0, int(self._calib_seconds * (1.0 - self._calib_progress)))
             label = f"Calibrating... {remaining}s"
         else:
-            label = self.state
+            if self._engagement is not None and self._relaxation is not None:
+                diff = self._engagement - self._relaxation
+                label = f"{self.state}  ({diff:+.2f})"
+            else:
+                label = self.state
 
         self.canvas.create_text(
             34, bar_y + 18, text=label, anchor="w", fill=dot_color, font=("Courier", 10, "bold")
         )
+
+        # PAF display — small text above bar, bottom left
+        if self._paf is not None:
+            self.canvas.create_text(
+                8, bar_y - 6, text=f"PAF {self._paf:.1f} Hz",
+                anchor="w", fill="#000000", font=("Courier", 8)
+            )
 
         self.canvas.create_text(
             cw - 14, bar_y + 18, text="✕", anchor="e", fill="#666",
@@ -773,6 +806,7 @@ class LofiliApp:
     def _play_tts(self, audio_file):
         """Threaded, fail-safe TTS playback handler."""
         if not os.path.exists(audio_file):
+            print(f"TTS: file not found: {audio_file}")
             return
 
         def _play():
@@ -781,19 +815,37 @@ class LofiliApp:
                 if not vlc_path:
                     print("TTS Error: VLC path not found.")
                     return
-
-                subprocess.Popen(
+                print(f"TTS: playing {os.path.basename(audio_file)} at vol={self._music_volume}")
+                result = subprocess.run(
                     [
                         vlc_path, "--intf", "dummy", "--no-video",
-                        f"--volume={self._tts_volume}",
+                        f"--volume={self._music_volume}",
                         "--play-and-exit", audio_file
                     ],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    capture_output=True, timeout=30
                 )
+                if result.returncode != 0:
+                    print(f"TTS VLC error: {result.stderr[:200].decode(errors='ignore')}")
             except Exception as e:
                 print(f"TTS Error: {e}")
 
         threading.Thread(target=_play, daemon=True).start()
+
+    def _schedule_drift_repeat(self):
+        """Re-trigger the drifting message+audio every 6s while state stays DRIFTING."""
+        self._cancel_drift_repeat()
+        self._drift_repeat_job = self.root.after(6000, self._drift_repeat)
+
+    def _cancel_drift_repeat(self):
+        if self._drift_repeat_job:
+            self.root.after_cancel(self._drift_repeat_job)
+            self._drift_repeat_job = None
+
+    def _drift_repeat(self):
+        """Called every 6s while still DRIFTING — show next message and reschedule."""
+        if self.state == "DRIFTING":
+            self._show_bubble()
+            self._schedule_drift_repeat()
 
     def _show_bubble(self):
         msgs = MESSAGES.get(self.state, [])
@@ -816,6 +868,7 @@ class LofiliApp:
     def _hide_bubble(self):
         self._bubble_text = ""
         self._bubble_job = None
+        self._drift_repeat_job = None  # repeating reminder while DRIFTING
 
 def launch_menu():
     root = tk.Tk()

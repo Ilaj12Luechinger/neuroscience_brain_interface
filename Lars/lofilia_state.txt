@@ -1,13 +1,13 @@
 {
-  "state": "CALIBRATING",
-  "time_since_state_change": 53.68,
-  "calibration_progress": 0.951,
-  "calibration_seconds": 60.0,
-  "iaf": null,
-  "engagement": 1.9074573608276402,
-  "relaxation": 0.1956446493680979,
-  "theta_baseline": 1e-08,
-  "paf": null,
-  "cog": null,
-  "complete": false
+  "state": "DRIFTING",
+  "time_since_state_change": 2.4,
+  "calibration_progress": 1.0,
+  "calibration_seconds": 10.0,
+  "iaf": 10.0,
+  "engagement": 0.343193499676729,
+  "relaxation": 0.7439930071763577,
+  "theta_baseline": 8.215532500070928,
+  "paf": 10.0,
+  "cog": 9.913374009940533,
+  "complete": true
 }
