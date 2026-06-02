@@ -1,13 +1,13 @@
 {
-  "state": "FOCUSED",
-  "time_since_state_change": 4.08,
+  "state": "CALIBRATING",
+  "time_since_state_change": -442.4,
   "calibration_progress": 1.0,
   "calibration_seconds": 10.0,
-  "iaf": 11.333333333333332,
-  "engagement": 0.9437138030355832,
-  "relaxation": 0.6164621149932566,
-  "theta_baseline": 8.450580069683406,
-  "paf": 11.333333333333332,
-  "cog": 9.895724143718096,
+  "iaf": null,
+  "engagement": 3.364165283097337,
+  "relaxation": 0.46751713315002086,
+  "theta_baseline": 4.806784544099614,
+  "paf": 7.333333333333333,
+  "cog": 9.049654907296256,
   "complete": true
 }

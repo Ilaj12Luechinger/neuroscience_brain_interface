@@ -1,41 +1,14 @@
-Timestamps Rest/Game for Test Recordings
+#Timestamps Rest/Game for Test Recordings
+#Used for testing the concentration Metric
+#shows timestamps for where state changes are expected
+# Data Validation:
+#2 min rest -> Bullet Chess game -> 2 min rest -> Bullet Chess game -> 2 min rest
 
-Simon1 = {
-    "rest1": (0, 120),
-    "game1": (120, 420),
-    "rest2": (420, 540),
-    "game2": (540, 720),
-    "rest3": (720, 840)
-}
 
-Simon2 = {
-    "rest1": (0, 120),
-    "game1": (120, 480),
-    "rest2": (480, 600),
-    "game2": (600, 780),
-    "rest3": (780, 900),
-}
-
-Simon3 = {
+livedata_test = {
     "rest1": (0, 120),
     "game1": (120, 330),
     "rest2": (330, 450),
     "game2": (450, 798),
     "rest3": (798, 918),
-}
-
-Ilaj1 = {
-    "rest1": (0, 120),
-    "game1": (120, 480),
-    "rest2": (480, 600),
-    "game2": (600, 972),
-    "rest3": (972, 1092)
-}
-
-Ilaj2 = {
-    "rest1": (0, 120),
-    "game1": (120, 480),
-    "rest2": (480, 600),
-    "game2": (600, 984),
-    "rest3": (984, 1104)
 }
