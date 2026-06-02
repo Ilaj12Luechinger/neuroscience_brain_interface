@@ -11,6 +11,10 @@ from scipy import signal
 from scipy.signal import welch
 from scipy.integrate import trapezoid
 
+# IMPORTANT:
+# Replace API token on line 41 with your actual API token from the IDUN Guardian dashboard.
+# Replace Device MAC address on line 42 with your actual device MAC address (format: XX:XX:XX:XX:XX:XX).
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
@@ -26,16 +30,16 @@ def parse_bool(value):
 
 parser = argparse.ArgumentParser(description="EEG backend for live or offline processing.")
 parser.add_argument("--mode", choices=["live", "offline"], default="live")
-parser.add_argument("--device-address", default="E0:53:73:AB:F9:05")
+parser.add_argument("--device-address", default="ENTER_YOUR_DEVICE_MAC_ADDRESS") # replace with your actual device MAC address
 parser.add_argument(
     "--csv-file",
-    default=str(_SCRIPT_DIR / "offline_data_analysis" / "livedata_test.csv"),
+    default=os.path.join(SCRIPT_DIR, "offline_data_analysis", "livedata_test.csv"),
 )
 parser.add_argument("--use-iaf", type=parse_bool, default=True)
 parser.add_argument("--calibration-seconds", type=float, default=5.0)
 parser.add_argument("--playback-speed", type=float, default=10.0)
 parser.add_argument("--recording-duration", type=int, default=0)
-parser.add_argument("--api-token", default="idun_MWSQ4pkewAGNz8wwYzw_NsweXihLC8tIcFzah8vqqys4Nc-ALzjfTwl2")
+parser.add_argument("--api-token", default="ENTER_YOUR_API_TOKEN")  # replace with your actual API token or set via environment variable
 args = parser.parse_args()
 
 MODE = args.mode

@@ -13,6 +13,8 @@ Required files in the "ui" subfolder:
     edited2.gif        — drifting state animation
     Loading_icon.gif   — calibration animation
     ttsreader_*.mp3    — TTS voice audio files
+
+# IMPORTANT: PLEASE REPLACE THE MAC ADDRESS ON LINE 55 WITH THE ACTUAL DEVICE MAC ADSRESS
 """
 
 import tkinter as tk
@@ -40,7 +42,8 @@ CONFIG_FILE = os.path.join(SCRIPT_DIR, "lofilia_config.json")
 STATE_FILE = os.path.join(SCRIPT_DIR, "lofilia_state.txt")
 
 
-LOFI_URL = "https://www.youtube.com/watch?v=5qap5aO4i9A" # for live music from the Lo-Fi Girl YouTube channel
+LOFI_URL = "https://www.youtube.com/watch?v=lTRiuFIWV54" # for music from the Lo-Fi Girl YouTube channel
+
 BACKEND_SCRIPT = os.path.join(SCRIPT_DIR, "eeg_backend.py")
 
 
@@ -49,7 +52,7 @@ GIF_DRIFTING = os.path.join(UI_DIR, "edited2.gif")
 GIF_CALIBRATING = os.path.join(UI_DIR, "Loading_icon.gif")
 
 DEFAULT_SETTINGS = {
-    "device_address": "E0:53:73:AB:F9:05",
+    "device_address": "YOUR_DEVICE_MAC_ADDRESS", #MAC address of the IDUN headset
     "use_iaf": True,
     "calibration_seconds": 5.0,
     "playback_speed": 10.0,
@@ -769,7 +772,7 @@ class LofiliApp:
         if self._paf is not None:
             self.canvas.create_text(
                 8, bar_y - 6, text=f"PAF {self._paf:.1f} Hz",
-                anchor="w", fill="#000000", font=("Courier", 8)
+                anchor="w", fill="#FFFFFF", font=("Courier", 10)
             )
 
         self.canvas.create_text(
